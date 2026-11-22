@@ -1,0 +1,26 @@
+{
+  "name": "Ponti & Viadotti - Ispezioni Stradali Offline",
+  "short_name": "PontiRilievi",
+  "description": "Progressive Web App offline-first per il rilievo e l'ispezione speditiva di ponti e viadotti stradali con calcolo matriciale G×K1×K2 e sincronizzazione OneDrive.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#090d16",
+  "theme_color": "#0284c7",
+  "scope": "./",
+  "categories": ["utilities", "productivity", "business"],
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

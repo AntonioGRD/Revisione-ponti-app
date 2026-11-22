@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="PWA Offline-First per ispezione e monitoraggio ponti e viadotti stradali con calcolo matriciale G×K1×K2 e sincronizzazione OneDrive.">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PontiRilievi">
+  <title>Ponti & Viadotti - Rilievi e Ispezioni Offline-First</title>
+
+  <!-- PWA Manifest & Favicon -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top App Bar Header -->
+    <header class="app-header">
+      <div class="header-brand" id="brandHomeBtn">
+        <img src="icons/icon.svg" alt="Logo Ponti" class="header-logo">
+        <div class="brand-title">
+          <span>PONTI & VIADOTTI</span>
+          <span class="brand-subtitle">ISPEZIONI SPEDITIVE • PWA</span>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation Tabs -->
+      <nav class="nav-tabs" id="desktopNavTabs">
+        <button class="nav-tab-btn active" data-tab="tab-bridges">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v7M12 14v7M16 14v7"/></svg>
+          Opere & Ponti
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-inspection">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+          Nuova Ispezione
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-history">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Storico Rilievi
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-sync">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Cloud & Sync
+          <span class="badge badge-med" id="syncPendingBadge" style="display: none; padding: 2px 5px; font-size: 0.65rem;">0</span>
+        </button>
+      </nav>
+
+      <!-- Header Controls -->
+      <div class="header-actions">
+        <!-- Live Online / Offline Pill -->
+        <div class="online-pill is-online" id="networkStatusPill" title="Stato connessione di rete">
+          <span class="dot-pulse"></span>
+          <span id="networkStatusText">ONLINE</span>
+        </div>
+
+        <!-- Theme Toggle Button -->
+        <button class="btn btn-icon" id="themeToggleBtn" title="Cambia tema (Chiaro/Scuro per cantiere)">
+          <svg id="themeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg id="themeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+
+        <!-- Settings / Backup Modal Trigger -->
+        <button class="btn btn-icon" id="settingsBtn" title="Impostazioni & Backup Database">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Viewport -->
+    <main class="main-viewport">
+      
+      <!-- =========================================================================
+           TAB 1: OPERE & VIADOTTI (HOME / SELEZIONE OPERA)
+           ========================================================================= -->
+      <section id="tab-bridges" class="tab-view active">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1>Opere d'Arte & Viadotti</h1>
+            <p class="section-subtitle">Catalogo ponti censiti, stato di difettosità e avvio rilievi sul campo</p>
+          </div>
+          <button class="btn btn-primary" id="openNewBridgeModalBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Nuovo Viadotto
+          </button>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="search-filter-bar">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="bridgeSearchInput" class="form-control" placeholder="Cerca per codice, nome opera, strada o progressiva km...">
+          </div>
+          <select id="bridgeRiskFilter" class="form-select" style="max-width: 200px;">
+            <option value="all">Tutte le Classi</option>
+            <option value="low">Classe Bassa (Verde)</option>
+            <option value="med">Classe Media (Giallo)</option>
+            <option value="high">Classe Alta (Arancione)</option>
+            <option value="crit">Critica / Urgente (Rosso)</option>
+          </select>
+        </div>
+
+        <!-- Grid Cards -->
+        <div class="bridges-grid" id="bridgesContainer">
+          <!-- Popolato dinamicamente da app.js -->
+        </div>
+      </section>
+
+      <!-- =========================================================================
+           TAB 2: SCHEDA RILIEVO & CALCOLO MATRICE
+           ========================================================================= -->
+      <section id="tab-inspection" class="tab-view">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h1>Scheda di Rilievo Speditivo</h1>
+            <p class="section-subtitle">Compilazione parametri difettosità, documentazione fotografica e calcolo matrice</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline btn-sm" id="viewLookupMatrixBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+              Tabella Lookup Matrice
+            </button>
+          </div>
+        </div>
+
+        <!-- Anagrafica Ispezione -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <h3>1. Riferimenti Opera & Ispettore</h3>
+            <span class="badge badge-low" id="draftAutoSaveStatus">Bozza salvata in locale</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="inspBridgeSelect">Seleziona Viadotto / Opera *</label>
+              <select id="inspBridgeSelect" class="form-select" required>
+                <!-- Popolato dinamicamente -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inspComponentSelect">Elemento Strutturale Ispezionato *</label>
+              <select id="inspComponentSelect" class="form-select" required>
+                <option value="Travi di Impalcato / Soletta">Travi di Impalcato / Soletta</option>
+                <option value="Pile e Pulvini">Pile e Pulvini</option>
+                <option value="Spalle e Muri d'ala">Spalle e Muri d'ala</option>
+                <option value="Apparecchi d'Appoggio">Apparecchi d'Appoggio</option>
+                <option value="Giunti di Dilatazione">Giunti di Dilatazione</option>
+                <option value="Barriere di Sicurezza & Cordoli">Barriere di Sicurezza & Cordoli</option>
+                <option value="Fondazioni e Alveo">Fondazioni e Alveo</option>
+                <option value="Pavimentazione e Impermeabilizzazione">Pavimentazione e Impermeabilizzazione</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="inspDateInput">Data & Ora Rilievo *</label>
+              <input type="datetime-local" id="inspDateInput" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inspInspectorInput">Tecnico / Ispettore Rilevatore *</label>
+              <input type="text" id="inspInspectorInput" class="form-control" placeholder="es. Ing. Nome Cognome" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= MATRIX CALCULATION BOX ================= -->
+        <div class="matrix-calc-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h3>2. Valutazione Matrice di Difettosità (G × K₁ × K₂)</h3>
+            <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">D.M. 578/2020</span>
+          </div>
+          <p style="font-size: 0.825rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Regola i selettori numerici per determinare in tempo reale l'Indice di Difetto e la Classe di Attenzione.
+          </p>
+
+          <div class="matrix-selectors-grid">
+            <!-- G Selector -->
+            <div class="matrix-slider-card">
+              <div class="matrix-slider-header">
+                <span class="matrix-slider-title">
+                  <span style="color: var(--primary-light);">G</span> - Gravità / Estensione
+                </span>
+                <span class="matrix-slider-val" id="gValDisplay">G1</span>
+              </div>
+              <input type="range" id="gSlider" class="custom-range" min="1" max="5" value="1" step="1">
+              <div class="matrix-slider-desc" id="gDescDisplay">Degrado superficiale iniziale, assenza di lesioni strutturali.</div>
+            </div>
+
+            <!-- K1 Selector -->
+            <div class="matrix-slider-card">
+              <div class="matrix-slider-header">
+                <span class="matrix-slider-title">
+                  <span style="color: var(--primary-light);">K₁</span> - Influenza Statica
+                </span>
+                <span class="matrix-slider-val" id="k1ValDisplay">K1=4</span>
+              </div>
+              <input type="range" id="k1Slider" class="custom-range" min="1" max="5" value="4" step="1">
+              <div class="matrix-slider-desc" id="k1DescDisplay">Elemento portante primario dell'impalcato.</div>
+            </div>
+
+            <!-- K2 Selector -->
+            <div class="matrix-slider-card">
+              <div class="matrix-slider-header">
+                <span class="matrix-slider-title">
+                  <span style="color: var(--primary-light);">K₂</span> - Ambiente / Accelerazione
+                </span>
+                <span class="matrix-slider-val" id="k2ValDisplay">K2=2</span>
+              </div>
+              <input type="range" id="k2Slider" class="custom-range" min="1" max="4" value="2" step="1">
+              <div class="matrix-slider-desc" id="k2DescDisplay">Ambiente sub-urbano, umidità ordinaria, traffico misto.</div>
+            </div>
+          </div>
+
+          <!-- Dynamic Result Display Banner -->
+          <div class="matrix-score-banner severity-low" id="matrixScoreBanner">
+            <div>
+              <div class="score-formula" id="scoreFormulaDisplay">Calcolo: 1 × 4 × 2 = 8</div>
+              <div class="score-class-title" id="scoreClassTitle">
+                <span class="badge badge-low" id="scoreBadge">CLASSE BASSA</span>
+                <span>Manutenzione Ordinaria</span>
+              </div>
+              <div class="score-prescription" id="scorePrescription">
+                Azione prescritta: Rilievo periodico standard e manutenzione ordinaria programmata.
+              </div>
+            </div>
+            <div>
+              <div class="score-value-large" id="scoreNumberDisplay" style="color: var(--severity-low);">8</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right; text-transform: uppercase;">Indice Difetto (Id)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= FOTO & DOCUMENTAZIONE ================= -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <h3>3. Documentazione Fotografica con Compressione Canvas</h3>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">Watermark GPS & compressione automatica lato client</span>
+          </div>
+
+          <!-- Upload Box -->
+          <div class="photo-uploader-box" id="photoDropArea">
+            <input type="file" id="photoFileInput" accept="image/*" multiple capture="environment">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2" style="margin-bottom: 0.5rem;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.2rem;">Scatta Foto o Trascina Immagini</div>
+            <div style="font-size: 0.78rem; color: var(--text-secondary);">
+              Compressione JPEG max 1920px, riduzione ~90% peso file, sovraimpressione peritale automatica (Data, GPS, Opera)
+            </div>
+          </div>
+
+          <!-- Photo Compression Progress indicator -->
+          <div id="photoCompressingIndicator" style="display: none; text-align: center; padding: 0.75rem; color: var(--primary-light); font-size: 0.85rem; font-weight: 600;">
+            ⚙️ Elaborazione e compressione Canvas in corso...
+          </div>
+
+          <!-- Gallery Grid -->
+          <div class="photo-gallery-grid" id="photoGalleryContainer">
+            <!-- Miniature foto compresse -->
+          </div>
+        </div>
+
+        <!-- Note e Osservazioni -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <h3>4. Note Peritali & Descrizione Difetto</h3>
+          </div>
+          <div class="form-group">
+            <textarea id="inspNotesInput" class="form-textarea" rows="3" placeholder="Descrizione dello stato di fatto, rilievo fessurativo, anomalie riscontrate, distacco copriferro, indicazione campate o pile interessate..."></textarea>
+          </div>
+        </div>
+
+        <!-- Form Action Buttons -->
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
+          <button class="btn btn-outline" id="resetInspFormBtn">Azzera Scheda</button>
+          <button class="btn btn-secondary" id="saveDraftBtn">Salva Bozza</button>
+          <button class="btn btn-success btn-lg" id="saveInspectionBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salva Ispezione & Accoda Sync
+          </button>
+        </div>
+      </section>
+
+      <!-- =========================================================================
+           TAB 3: STORICO ISPEZIONI
+           ========================================================================= -->
+      <section id="tab-history" class="tab-view">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1>Storico Ispezioni & Trend</h1>
+            <p class="section-subtitle">Cronologia dettagliata, evoluzione dell'indice di difetto ed esportazione peritale</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" id="exportAllExcelBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              Esporta Tutto in Excel (.csv)
+            </button>
+          </div>
+        </div>
+
+        <!-- History Filter -->
+        <div class="search-filter-bar">
+          <div class="search-input-wrapper">
+            <select id="historyBridgeFilter" class="form-select">
+              <option value="all">Tutti i Viadotti</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- History Timeline Container -->
+        <div class="timeline-list" id="historyTimelineContainer">
+          <!-- Popolato dinamicamente -->
+        </div>
+      </section>
+
+      <!-- =========================================================================
+           TAB 4: CLOUD & ONEDRIVE SYNC QUEUE
+           ========================================================================= -->
+      <section id="tab-sync" class="tab-view">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1>Integrazione Cloud & Microsoft OneDrive</h1>
+            <p class="section-subtitle">Sincronizzazione archivio remoto, esportazione cartelle dedicate ed Excel Master</p>
+          </div>
+          <button class="btn btn-primary" id="triggerSyncAllBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Sincronizza Tutti i Rilievi
+          </button>
+        </div>
+
+        <!-- OneDrive Account Status Box -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <h3>Stato Connessione Microsoft Graph API</h3>
+            <span class="badge badge-low" id="oneDriveStatusBadge">Modalità Sandbox / Pronto</span>
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Struttura cartelle automatica: <code>/Ispezioni_Ponti/{Codice_Opera}/{Data_Ispezione}/</code> con aggiornamento append riga sul file master <code>/Ispezioni_Ponti/Master_Storico_Ispezioni.xlsx</code>.
+          </p>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn btn-outline btn-sm" id="openAzureConfigBtn">Configura Client ID Azure AD</button>
+            <button class="btn btn-primary btn-sm" id="oneDriveLoginBtn">Accedi con Microsoft 365</button>
+          </div>
+        </div>
+
+        <!-- Coda di Sincronizzazione Attiva -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Coda di Sincronizzazione Locale (Sync Queue)</h3>
+            <span id="syncQueueCountBadge" class="badge badge-med">0 in sospeso</span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div id="syncProgressBarWrapper" style="display: none; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.3rem;">
+              <span id="syncProgressText">Sincronizzazione in corso...</span>
+              <span id="syncProgressPercent">0%</span>
+            </div>
+            <div style="height: 6px; background: var(--bg-surface-elevated); border-radius: 3px; overflow: hidden;">
+              <div id="syncProgressBar" style="height: 100%; width: 0%; background: var(--primary-light); transition: width 0.2s;"></div>
+            </div>
+          </div>
+
+          <div id="syncQueueContainer">
+            <!-- Elementi coda sincronizzazione -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="bottom-nav" id="mobileBottomNav">
+      <button class="bottom-nav-item active" data-tab="tab-bridges">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v7M12 14v7M16 14v7"/></svg>
+        <span>Opere</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="tab-inspection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+        <span>Rilievo</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="tab-history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Storico</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="tab-sync">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Sync</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: NUOVO VIADOTTO / OPERA D'ARTE
+       ========================================================================= -->
+  <div class="modal-overlay" id="newBridgeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>+ Censimento Nuovo Viadotto</h3>
+        <button class="btn-icon" id="closeNewBridgeModalBtn">&times;</button>
+      </div>
+
+      <form id="newBridgeForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="newBridgeCode">Codice Univoco Opera *</label>
+            <input type="text" id="newBridgeCode" class="form-control" placeholder="es. VIA-SS1-085" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newBridgeName">Nome Opera *</label>
+            <input type="text" id="newBridgeName" class="form-control" placeholder="es. Viadotto Rio Torto" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="newBridgeRoute">Strada / Tratta *</label>
+            <input type="text" id="newBridgeRoute" class="form-control" placeholder="es. SS 1 Aurelia" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newBridgeKm">Progressiva KM *</label>
+            <input type="text" id="newBridgeKm" class="form-control" placeholder="es. km 85+250" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="newBridgeType">Tipologia Strutturale</label>
+            <select id="newBridgeType" class="form-select">
+              <option value="Travi in C.A.P. a sezione a T">Travi in C.A.P. a sezione a T</option>
+              <option value="Struttura Mista Acciaio-Calcestruzzo">Struttura Mista Acciaio-Calcestruzzo</option>
+              <option value="Arco in C.A. a via superiore">Arco in C.A. a via superiore</option>
+              <option value="Travi prefabbricate ad interasse variabile">Travi prefabbricate ad interasse variabile</option>
+              <option value="Ponte a cassone continuo">Ponte a cassone continuo</option>
+              <option value="Ponte in Muratura di pietrame/mattoni">Ponte in Muratura</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newBridgeSpans">Numero Campate</label>
+            <input type="number" id="newBridgeSpans" class="form-control" min="1" max="100" value="3">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="newBridgeLength">Lunghezza Totale (m)</label>
+            <input type="number" id="newBridgeLength" class="form-control" min="1" placeholder="es. 145">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newBridgeYear">Anno di Costruzione</label>
+            <input type="number" id="newBridgeYear" class="form-control" min="1800" max="2030" placeholder="es. 1982">
+          </div>
+        </div>
+
+        <!-- GPS Geolocation Card -->
+        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+              Geolocalizzazione GPS
+            </span>
+            <button type="button" class="btn btn-primary btn-sm" id="captureGPSBtn">
+              🛰️ Rileva Posizione GPS Attuale
+            </button>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="newBridgeLat">Latitudine</label>
+              <input type="number" id="newBridgeLat" class="form-control" step="0.000001" placeholder="es. 41.987342">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="newBridgeLng">Longitudine</label>
+              <input type="number" id="newBridgeLng" class="form-control" step="0.000001" placeholder="es. 12.124501">
+            </div>
+          </div>
+          <div id="gpsAccuracyDisplay" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem;">
+            Accuratezza GPS: Non ancora rilevata
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn btn-outline" id="cancelNewBridgeBtn">Annulla</button>
+          <button type="submit" class="btn btn-success">Salva Viadotto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: TABELLA LOOKUP MATRICE CONFIGURABILE
+       ========================================================================= -->
+  <div class="modal-overlay" id="lookupMatrixModal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3>Tabella di Lookup Matrice di Rischio</h3>
+        <button class="btn-icon" id="closeLookupMatrixModalBtn">&times;</button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        Valutazione combinata di $G$ (Gravità 1-5) e $K_1$ (Influenza Statica 1-5) con fattore ambientale $K_2$ selezionabile:
+      </p>
+
+      <!-- K2 switcher in table -->
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center;">
+        <span style="font-size: 0.8rem; font-weight: 600;">Seleziona K₂:</span>
+        <button class="btn btn-sm btn-secondary k2-lookup-btn active" data-k2="1">K2=1 (Basso)</button>
+        <button class="btn btn-sm btn-secondary k2-lookup-btn" data-k2="2">K2=2 (Medio)</button>
+        <button class="btn btn-sm btn-secondary k2-lookup-btn" data-k2="3">K2=3 (Alto)</button>
+        <button class="btn btn-sm btn-secondary k2-lookup-btn" data-k2="4">K2=4 (Critico)</button>
+      </div>
+
+      <!-- Matrix Table Container -->
+      <div style="overflow-x: auto; margin-bottom: 1.25rem;">
+        <table id="interactiveLookupTable" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem;">
+          <!-- Popolato dinamicamente -->
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn btn-primary" id="closeLookupMatrixBtn2">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: IMPOSTAZIONI, AZURE ONEDRIVE & BACKUP DB
+       ========================================================================= -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Impostazioni & Integrazione Cloud</h3>
+        <button class="btn-icon" id="closeSettingsModalBtn">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="azureClientIdInput">Azure AD App Client ID (Application ID)</label>
+        <input type="text" id="azureClientIdInput" class="form-control" placeholder="es. 4a8b9c1d-1234-5678-9abc-def012345678">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="azureTenantIdInput">Tenant ID (Opzionale, default: common)</label>
+        <input type="text" id="azureTenantIdInput" class="form-control" placeholder="common o ID Tenant">
+      </div>
+
+      <button class="btn btn-primary btn-sm" id="saveAzureSettingsBtn" style="margin-bottom: 1.5rem;">
+        Salva Parametri Azure
+      </button>
+
+      <hr style="border-color: var(--border-color); margin: 1rem 0;">
+
+      <h4>Archiviazione Locale & Backup Database</h4>
+      <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+        Esporta l'intero database IndexedDB (ponti, ispezioni e foto) in formato JSON oppure ripristina un backup precedente.
+      </p>
+
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;">
+        <button class="btn btn-secondary btn-sm" id="exportFullDbBtn">📥 Scarica Backup Completo JSON</button>
+        <label class="btn btn-outline btn-sm" style="margin: 0; cursor: pointer;">
+          📤 Ripristina da JSON
+          <input type="file" id="importFullDbFileInput" accept=".json" style="display: none;">
+        </label>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem;">
+        <button class="btn btn-danger btn-sm" id="wipeAllDataBtn" style="width: 100%;">
+          🗑️ Svuota Tutto il Database Locale
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: LIGHTBOX FOTO FULLSCREEN
+       ========================================================================= -->
+  <div class="modal-overlay" id="photoLightboxModal">
+    <div class="modal-content" style="max-width: 900px; padding: 1rem; text-align: center; background: #000000;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <span id="lightboxPhotoCaption" style="font-size: 0.85rem; color: #ffffff; font-weight: 600;">Dettaglio Foto</span>
+        <button class="btn-icon" id="closeLightboxModalBtn" style="background: rgba(255,255,255,0.2); color: #ffffff;">&times;</button>
+      </div>
+      <img id="lightboxImg" src="" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 6px;" alt="Foto Ingrandita">
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/db.js"></script>
+  <script src="js/matrix.js"></script>
+  <script src="js/photo.js"></script>
+  <script src="js/gps.js"></script>
+  <script src="js/onedrive.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/sample-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
